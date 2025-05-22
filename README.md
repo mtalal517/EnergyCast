@@ -53,8 +53,6 @@ cd daily-energy-load-forecast
 python app.py
 ```
 
-## 📄 License
-Licensed under the MIT License.
 
 
 

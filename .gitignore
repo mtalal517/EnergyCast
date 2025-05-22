@@ -1,0 +1,64 @@
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.env
+.venv/
+env/
+venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VS Code settings
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# MacOS
+.DS_Store
+
+# Logs and local data
+*.log
+*.sqlite3
+*.db
+*.pkl
+*.h5
+*.hdf5
+*.joblib
+
+# Model artifacts
+models/
+checkpoints/
+runs/
+
+# Large datasets
+data/
+datasets/
+*.tsv
+*.xls
+*.xlsx
+*.json
+
+# Node dependencies (if you have frontend builds)
+node_modules/
+dist/
+build/
+
+# Environment and secrets
+.env
+*.env
+secrets.json
+config.json
+
+# Compiled files
+*.so
+
+# Misc
+*.bak
+*.swp
+*.tmp

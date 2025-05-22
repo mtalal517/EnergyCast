@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Load Prediction</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-blue: #1e40af;
+            --primary-electric: #06b6d4;
+            --accent-orange: #f59e0b;
+            --accent-green: #10b981;
+            --dark-navy: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --gradient-primary: linear-gradient(135deg, var(--primary-blue), var(--primary-electric));
+            --gradient-accent: linear-gradient(135deg, var(--accent-orange), var(--accent-green));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--slate-800);
+        }
+
+        .background-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25px 25px, rgba(255,255,255,0.1) 2px, transparent 0),
+                radial-gradient(circle at 75px 75px, rgba(255,255,255,0.05) 2px, transparent 0);
+            background-size: 100px 100px;
+            z-index: -1;
+        }
+
+        .header {
+            background: var(--gradient-primary);
+            padding: 3rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            color: var(--white);
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            font-weight: 400;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .prediction-form {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin: -3rem auto 3rem;
+            box-shadow: var(--shadow-xl);
+            max-width: 800px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--slate-700);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid var(--slate-100);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--white);
+            color: var(--slate-800);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-electric);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .predict-button {
+            background: var(--gradient-accent);
+            color: var(--white);
+            border: none;
+            padding: 1.25rem 3rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0 auto;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .predict-button:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .predict-button:active {
+            transform: translateY(-1px);
+        }
+
+        .dashboard-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--slate-800);
+            color: var(--white);
+            padding: 1rem 2rem;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            margin: 0 auto 2rem;
+            width: fit-content;
+        }
+
+        .dashboard-button:hover {
+            background: var(--slate-700);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .results-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .chart-card, .data-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Fixed chart container sizing */
+        .chart-card {
+            min-height: 500px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--slate-100);
+        }
+
+        .card-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--slate-800);
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 1.1rem;
+        }
+
+        .data-card {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .results-table th {
+            background: var(--gradient-primary);
+            color: var(--white);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .results-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--slate-100);
+            background: var(--white);
+            transition: background-color 0.2s ease;
+        }
+
+        .results-table tr:hover td {
+            background: var(--slate-50);
+        }
+
+        .results-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .loading-spinner {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--slate-100);
+            border-top: 4px solid var(--primary-electric);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .success-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--accent-green);
+            color: var(--white);
+            padding: 0.5rem;
+            border-radius: 50%;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .success-indicator.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        @media (max-width: 1024px) {
+            .results-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                height: 350px;
+            }
+            
+            .data-card {
+                max-height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .prediction-form {
+                margin: -2rem 1rem 2rem;
+                padding: 2rem;
+            }
+
+            .main-container {
+                padding: 1rem;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+            
+            .chart-card {
+                min-height: 400px;
+            }
+            
+            .data-card {
+                max-height: 350px;
+            }
+        }
+
+        /* Chart.js custom styling */
+        .chartjs-tooltip {
+            background: var(--slate-800) !important;
+            border-radius: 8px !important;
+            box-shadow: var(--shadow-lg) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-pattern"></div>
+
+    <header class="header">
+        <h1><i class="fas fa-bolt"></i> Energy Load Prediction</h1>
+        <p class="subtitle">Advanced forecasting models for power system planning</p>
+    </header>
+
+    <div class="main-container">
+        <form id="prediction-form" class="prediction-form">
+            <div class="success-indicator" id="success-indicator">
+                <i class="fas fa-check"></i>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="num_periods">
+                        <i class="fas fa-calendar-alt"></i>
+                        Number of Periods to Predict
+                    </label>
+                    <input type="number" id="num_periods" name="num_periods" required min="1" max="365" placeholder="e.g., 24">
+                </div>
+
+                <div class="form-group">
+                    <label for="model">
+                        <i class="fas fa-brain"></i>
+                        Select Prediction Model
+                    </label>
+                    <select id="model" name="model" required>
+                        <option value="">Choose a model...</option>
+                        <option value="svr">Support Vector Regression (SVR)</option>
+                        <option value="prophet">Prophet Time Series</option>
+                        <option value="ets">Exponential Smoothing (ETS)</option>
+                        <option value="arima">ARIMA Model</option>
+                        <option value="sarima">SARIMA Model</option>
+
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="predict-button">
+                <i class="fas fa-chart-line"></i>
+                Generate Prediction
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <a href="/dashboard" class="dashboard-button">
+                <i class="fas fa-tachometer-alt"></i>
+                View Dashboard
+            </a>
+        </div>
+
+        <div class="loading-spinner" id="loading-spinner">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="results-container" id="results-container" style="display: none;">
+            <div class="chart-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-area"></i>
+                    </div>
+                    <h3>Prediction Visualization</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="predictionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="data-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-table"></i>
+                    </div>
+                    <h3>Prediction Data</h3>
+                </div>
+                <div id="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let predictionChart = null;
+
+        document.getElementById('prediction-form').onsubmit = async function(event) {
+            event.preventDefault();
+            const form = event.target;
+            const data = new FormData(form);
+
+            // Show loading spinner
+            document.getElementById('loading-spinner').style.display = 'flex';
+            document.getElementById('results-container').style.display = 'none';
+
+            const model = data.get('model');
+            const endpoints = {
+                svr: '/predict_svr',
+                prophet: '/predict_prophet',
+                ets: '/predict_ets',
+                arima: '/predict_arima',
+                sarima: '/predict_sarima',
+            };
+
+            const endpoint = endpoints[model];
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: data
+                });
+
+                if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+
+                const result = await response.json();
+                const resultsDiv = document.getElementById('results');
+
+                // Hide loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                if (result.error) {
+                    resultsDiv.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle"></i>Error: ${result.error}</div>`;
+                    return;
+                }
+
+                const dates = result.dates;
+                const predictions = result.predictions;
+
+                // Show success indicator
+                const successIndicator = document.getElementById('success-indicator');
+                successIndicator.classList.add('show');
+                setTimeout(() => successIndicator.classList.remove('show'), 2000);
+
+                // Show results container
+                document.getElementById('results-container').style.display = 'grid';
+
+                // Destroy existing chart if it exists
+                if (predictionChart) {
+                    predictionChart.destroy();
+                    predictionChart = null;
+                }
+
+                // Create new chart with fixed sizing
+                const ctx = document.getElementById('predictionChart').getContext('2d');
+                predictionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Predicted Load (MW)',
+                            data: predictions,
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#06b6d4',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false, // This is crucial for fixed sizing
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: { 
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        family: 'Inter',
+                                        size: 12,
+                                        weight: '500'
+                                    },
+                                    color: '#334155',
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#1e293b',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#06b6d4',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                displayColors: false,
+                                titleFont: {
+                                    family: 'Inter',
+                                    size: 13,
+                                    weight: '600'
+                                },
+                                bodyFont: {
+                                    family: 'Inter',
+                                    size: 12
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                title: { 
+                                    display: true, 
+                                    text: 'Date',
+                                    font: {
+                                        family: 'Inter',
+                                        size: 14,
+                                        weight: '600'
+                                    },
+                                    color: '#475569'
+                                },
+                                grid: {
+                                    color: '#e2e8f0',
+                                    drawOnChartArea: true,
+                                    drawTicks: true
+                                },
+                                ticks: {
+                                    font: {
+                                        family: 'Inter',
+                                        size: 11
+                                    },
+                                    color: '#64748b',
+                                    maxTicksLimit: 10
+                                }
+                            },
+                            y: { 
+                                title: { 
+                                    display: true, 
+                                    text: 'Load (MW)',
+                                    font: {
+                                        family: 'Inter',
+                                        size: 14,
+                                        weight: '600'
+                                    },
+                                    color: '#475569'
+                                },
+                                grid: {
+                                    color: '#e2e8f0',
+                                    drawOnChartArea: true,
+                                    drawTicks: true
+                                },
+                                ticks: {
+                                    font: {
+                                        family: 'Inter',
+                                        size: 11
+                                    },
+                                    color: '#64748b'
+                                }
+                            }
+                        },
+                        elements: {
+                            point: {
+                                hoverBorderWidth: 3
+                            }
+                        }
+                    }
+                });
+
+                // Create results table
+                resultsDiv.innerHTML = `
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-calendar"></i> Date</th>
+                                <th><i class="fas fa-bolt"></i> Load (MW)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${result.dates.map((date, i) => 
+                                `<tr>
+                                    <td>${date}</td>
+                                    <td><strong>${result.predictions[i].toFixed(2)}</strong></td>
+                                </tr>`
+                            ).join('')}
+                        </tbody>
+                    </table>
+                `;
+
+            } catch (error) {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('results').innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle"></i>${error.message}</div>`;
+            }
+        };
+
+        // Add some interactive enhancements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus first input
+            document.getElementById('num_periods').focus();
+
+            // Add input validation
+            const numPeriodsInput = document.getElementById('num_periods');
+            numPeriodsInput.addEventListener('input', function() {
+                if (this.value > 365) {
+                    this.value = 365;
+                }
+                if (this.value < 1) {
+                    this.value = 1;
+                }
+            });
+        });
+
+        // Handle window resize to maintain chart responsiveness
+        window.addEventListener('resize', function() {
+            if (predictionChart) {
+                predictionChart.resize();
+            }
+        });
+    </script>
+</body>
+</html>
